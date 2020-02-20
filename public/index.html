@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Timezones</title>
+    <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.1/build/pure-min.css"
+          integrity="sha384-oAOxQR6DkCoMliIh8yFnu25d7Eq/PHS21PClpwjOTeU2jRSq11vu66rf90/cZr47" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://unpkg.com/purecss@1.0.1/build/grids-responsive-min.css">
+    <style>
+        body {
+            padding: 0.5em;
+        }
+
+        .hour {
+            text-align: center;
+            line-height: 2em;
+        }
+        /* morning */
+        .hour-07 { background-color: #b1b1ff; }
+        .hour-08 { background-color: #b1b1ff; }
+        /* office */
+        .hour-09 { background-color: #d8d8ff; }
+        .hour-10 { background-color: #d8d8ff; }
+        .hour-11 { background-color: #d8d8ff; }
+        .hour-12 { background-color: #d8d8ff; }
+        .hour-13 { background-color: #d8d8ff; }
+        .hour-14 { background-color: #d8d8ff; }
+        .hour-15 { background-color: #d8d8ff; }
+        .hour-16 { background-color: #d8d8ff; }
+        .hour-17 { background-color: #d8d8ff; }
+        /* evening */
+        .hour-18 { background-color: #8989ff; }
+        .hour-19 { background-color: #8989ff; }
+        .hour-20 { background-color: #8989ff; }
+        .hour-21 { background-color: #8989ff; }
+        /* night */
+        .hour-22 { background-color: #4e4eff; color: #d8d8ff; }
+        .hour-23 { background-color: #4e4eff; color: #d8d8ff; }
+        .hour-00 { background-color: #4e4eff; color: #d8d8ff; }
+        .hour-01 { background-color: #4e4eff; color: #d8d8ff; }
+        .hour-02 { background-color: #4e4eff; color: #d8d8ff; }
+        .hour-03 { background-color: #4e4eff; color: #d8d8ff; }
+        .hour-04 { background-color: #4e4eff; color: #d8d8ff; }
+        .hour-05 { background-color: #4e4eff; color: #d8d8ff; }
+        .hour-06 { background-color: #4e4eff; color: #d8d8ff; }
+        .home{ font-weight: bold; font-style: italic; }
+        .now{ font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <timezone
+            v-for="timezone in timezones"
+            v-bind:key="timezone"
+            v-bind:tz="timezone"
+            v-bind:home="home"
+            v-bind:start="start"
+    />
+</div>
+
+<script type="text/x-template" id="timezone-template">
+    <div class="pure-g">
+        <div class="pure-u-1-5">{{ tz }}</div>
+        <div class="pure-u-4-5">
+            <div class="pure-g">
+                <div class="pure-u-1-24"
+                     v-for="hour in hours"
+                     v-bind:class="hour.class"
+                > {{hour.hour}}
+                </div>
+            </div>
+        </div>
+    </div>
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.27/moment-timezone-with-data.min.js"></script>
+<script>
+
+    Vue.config.productionTip = false;
+
+    Vue.component('timezone', {
+        template: '#timezone-template',
+        props: ['tz', 'home', 'start'],
+        data: function () {
+            return {
+                displayOffset: 0,
+                zone: undefined,
+                hours: []
+            };
+        },
+        created: function () {
+            this.updateTz();
+        },
+        updated: function () {
+            this.updateTz();
+        },
+        methods: {
+            updateTz: function () {
+                let basecss = 'hour ';
+                if (this.tz === this.home) {
+                    basecss = basecss + 'home ';
+                }
+                let key;
+                this.hours = [];
+                for (key = 0; key < 24; key++) {
+                    let time = this.start.clone().add(key, 'hours');
+                    let hour = time.tz(this.tz).format('HH');
+                    let css = basecss + 'hour-' + hour;
+                    if (key === 12) {
+                        css = css + ' now';
+                    }
+                    this.hours.push({
+                        key: key,
+                        hour: hour,
+                        class: css
+                    });
+                }
+            }
+        }
+
+    });
+
+    window.app = new Vue({
+        el: '#app',
+        data: function () {
+            return {
+                home: moment.tz.guess(true),
+                timezones: [],
+                now: undefined,
+                start: undefined,
+                intervalRef: undefined,
+            };
+        },
+        created: function () {
+            this.updateStart();
+            this.timezones.push('America/Los_Angeles');
+            this.timezones.push('America/Chicago');
+            this.timezones.push('America/New_York');
+            this.timezones.push('Europe/London');
+            // this.timezones.push('Europe/Brussels');
+            this.timezones.push('Europe/Tallinn');
+            this.timezones.push('Asia/Saigon');
+            this.timezones.push('Asia/Tokyo');
+            this.timezones.push('Australia/Sydney');
+            if (!this.timezones.includes(this.home)) {
+                this.timezones.push(this.home);
+            }
+            let self = this;
+            this.intervalRef = setInterval(function() {
+                self.updateStart();
+            }, 60 * 1000);
+        },
+        methods: {
+            updateStart: function () {
+                let now = moment.tz(this.home);
+                let abbr = moment.tz.zone(this.home).abbr(now);
+                document.title = 'Timezones - ' + now.format('HH:mm') + ' ' + abbr;
+                this.now = now.utc();
+                this.start = this.now.subtract(12, 'hours');
+            }
+        }
+    });
+</script>
+</body>
+</html>
